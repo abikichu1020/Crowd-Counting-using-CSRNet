@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crowd Counting</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 20px; background: #f8f8f8; }
+  h1 { text-align: center; color: #333; }
+  .box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 0 5px #ccc; text-align: center; }
+  input[type="file"], button { margin: 10px 0; width: 100%; padding: 10px; font-size: 15px; }
+  button { background: #4a90e2; color: white; border: none; cursor: pointer; }
+  img { max-width: 100%; margin-top: 10px; border-radius: 5px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Crowd Counting with CSRNet</h1>
+<div class="box">
+  <form id="uploadForm">
+    <input type="file" id="imageInput" accept="image/*" required>
+    <button type="submit">Detect</button>
+  </form>
+
+  <div id="loading" style="display:none;">Processing...</div>
+
+  <div id="result" style="display:none;">
+    <p>Estimated Count: <strong id="count">0</strong></p>
+    <div class="grid">
+      <div>
+        <h3>Original</h3>
+        <img id="originalImage" />
+      </div>
+      <div>
+        <h3>Density Map</h3>
+        <img id="densityMap" />
+      </div>
+      <div>
+        <h3>Overlay</h3>
+        <img id="overlayImage" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById("uploadForm");
+const loading = document.getElementById("loading");
+const result = document.getElementById("result");
+const countDisplay = document.getElementById("count");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loading.style.display = "block";
+  result.style.display = "none";
+
+  const file = document.getElementById("imageInput").files[0];
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const res = await fetch("/detect", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    countDisplay.textContent = data.count;
+    document.getElementById("originalImage").src = URL.createObjectURL(file);
+    document.getElementById("densityMap").src = `data:image/jpeg;base64,${data.density_map}`;
+    document.getElementById("overlayImage").src = `data:image/jpeg;base64,${data.overlay}`;
+    result.style.display = "block";
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    loading.style.display = "none";
+  }
+});
+</script>
+
+</body>
+</html>
